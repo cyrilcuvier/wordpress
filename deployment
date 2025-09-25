@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-demo
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress-demo
+  template:
+    metadata:
+      labels:
+        app: wordpress-demo
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: rootpass
+            - name: MYSQL_DATABASE
+              value: wordpress
+            - name: MYSQL_USER
+              value: wpuser
+            - name: MYSQL_PASSWORD
+              value: wppass
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+        - name: wordpress
+          image: wordpress:php8.2-apache
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: localhost:3306
+            - name: WORDPRESS_DB_NAME
+              value: wordpress
+            - name: WORDPRESS_DB_USER
+              value: wpuser
+            - name: WORDPRESS_DB_PASSWORD
+              value: wppass
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: wp-data
+              mountPath: /var/www/html
+      volumes:
+        - name: mysql-data
+          emptyDir: {}
+        - name: wp-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-demo
+spec:
+  selector:
+    app: wordpress-demo
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
